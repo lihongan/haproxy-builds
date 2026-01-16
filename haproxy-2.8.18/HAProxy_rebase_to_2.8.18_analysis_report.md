@@ -19,6 +19,47 @@ Context
 
 -----
 
+Overall Assessment
+
+**Total known bugs fixed**: 335 (1 CRITICAL + 7 MAJOR + 128 MEDIUM + 199 MINOR)
+
+**OpenShift router relevant fixes**:
+- 1 CRITICAL bug: mjson DoS (no risk - not exposed)
+- 3 MAJOR bugs: Stream channel analysis, mux-h1 zero-copy forwarding, and listener accounting (low risk - bug fixes)
+- ~15 MEDIUM bugs in HTTP/1, HTTP/2, SSL/TLS, backend, and healthcheck areas (low risk - bug fixes)
+- ~10 MINOR bugs in HTTP protocol compliance, error detection, and WebSocket handling (no risk to low risk)
+
+**Filtered out (not relevant to OpenShift router)**:
+- All QUIC protocol fixes (4 MAJOR bugs, many MEDIUM/MINOR) - not used
+- All HTTP/3 fixes - not used
+- All Lua scripting fixes - not used
+- Prometheus exporter fixes - not enabled
+- OCSP auto-update - not used
+
+**Risk Assessment**: **Low**
+
+All fixes are bug corrections that restore intended behavior without introducing new features or requiring configuration changes. The upgrade risk is low.
+
+The most important bug fixes for OpenShift router are:
+1. **Stream channel analysis** (BUG/MAJOR): Fixes stalled streams when errors occur during synchronous sends - affects all HTTP traffic
+2. **HTTP/1 zero-copy forwarding** (BUG/MAJOR): Fixes connection leaks during graceful shutdown
+3. **HTTP/1 tunnel mode** (BUG/MEDIUM): Fixes premature connection closure for WebSocket passthrough
+4. **HTTP/2 idle connection** (BUG/MEDIUM): Fixes H2 backend connection reuse (if using H2 backends)
+5. **SSL/TLS handshake improvements**: Multiple fixes for edge cases
+6. **HTTP protocol compliance** (BUG/MINOR): Transfer-Encoding validation prevents potential HTTP request smuggling
+7. **WebSocket and protocol upgrade** (BUG/MINOR): Fixes connection handling during upgrades
+
+**Recommendation**: **Upgrade recommended**. The rebase to 2.8.18 brings important bug fixes with low risk:
+- Fixes for stream processing that could cause stalled requests/responses
+- WebSocket and tunnel mode reliability improvements
+- HTTP protocol compliance and security hardening
+- No configuration changes required
+- No behavioral changes that affect user operations
+
+All changes are bug fixes that correct broken behavior. No medium or high risk changes identified.
+
+-----
+
 Critical bugs (1)
 
   - [BUG/CRITICAL: mjson: fix possible DoS when parsing numbers](https://git.haproxy.org/?p=haproxy-2.8.git;a=commitdiff;h=444144e): fixes Denial of Service vulnerability when parsing numbers with large exponents. The mjson library's strtod() implementation used an iterative loop in O(exp) time for exponent calculation, which could take a huge amount of time for unbounded exponents. The fix replaces this with shifts and squares approach computing the exponent in O(log(exp)) time. The DoS could be triggered by sending a specially crafted JSON number with a very large exponent.
@@ -163,44 +204,3 @@ Focused on HTTP protocol compliance, error detection, and operational improvemen
 
   - [BUG/MINOR: http-ana: Disable fast-fwd for unfinished req waiting for upgrade](https://git.haproxy.org/?p=haproxy-2.8.git;a=commitdiff;h=0ff9b3f): disables fast-forward optimization for requests waiting for protocol upgrade (e.g., WebSocket). Prevents potential data loss during upgrade.
       - **Low risk**. Improves WebSocket and protocol upgrade reliability.
-
------
-
-Overall Assessment
-
-**Total known bugs fixed**: 335 (1 CRITICAL + 7 MAJOR + 128 MEDIUM + 199 MINOR)
-
-**OpenShift router relevant fixes**:
-- 1 CRITICAL bug: mjson DoS (no risk - not exposed)
-- 3 MAJOR bugs: Stream channel analysis, mux-h1 zero-copy forwarding, and listener accounting (low risk - bug fixes)
-- ~15 MEDIUM bugs in HTTP/1, HTTP/2, SSL/TLS, backend, and healthcheck areas (low risk - bug fixes)
-- ~10 MINOR bugs in HTTP protocol compliance, error detection, and WebSocket handling (no risk to low risk)
-
-**Filtered out (not relevant to OpenShift router)**:
-- All QUIC protocol fixes (4 MAJOR bugs, many MEDIUM/MINOR) - not used
-- All HTTP/3 fixes - not used
-- All Lua scripting fixes - not used
-- Prometheus exporter fixes - not enabled
-- OCSP auto-update - not used
-
-**Risk Assessment**: **Low**
-
-All fixes are bug corrections with no behavior changes, new configuration options, or threshold modifications. The upgrade risk is low.
-
-The most important bug fixes for OpenShift router are:
-1. **Stream channel analysis** (BUG/MAJOR): Fixes stalled streams when errors occur during synchronous sends - affects all HTTP traffic
-2. **HTTP/1 zero-copy forwarding** (BUG/MAJOR): Fixes connection leaks during graceful shutdown
-3. **HTTP/1 tunnel mode** (BUG/MEDIUM): Fixes premature connection closure for WebSocket passthrough
-4. **HTTP/2 idle connection** (BUG/MEDIUM): Fixes H2 backend connection reuse (if using H2 backends)
-5. **SSL/TLS handshake improvements**: Multiple fixes for edge cases
-6. **HTTP protocol compliance** (BUG/MINOR): Transfer-Encoding validation prevents potential HTTP request smuggling
-7. **WebSocket and protocol upgrade** (BUG/MINOR): Fixes connection handling during upgrades
-
-**Recommendation**: **Upgrade recommended**. The rebase to 2.8.18 brings important bug fixes with low risk:
-- Fixes for stream processing that could cause stalled requests/responses
-- WebSocket and tunnel mode reliability improvements
-- HTTP protocol compliance and security hardening
-- No configuration changes required
-- No behavioral changes that affect user operations
-
-All changes are bug fixes that correct broken behavior. No medium or high risk changes identified
